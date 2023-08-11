@@ -1,48 +1,56 @@
-# -*- coding: utf-8 -*-
 import torch
-import math
+import torch.nn as nn
+import torch.optim as optim
 
+# Define a simple neural network
+class SimpleNet(nn.Module):
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.fc1 = nn.Linear(3, 5)  # 3 input features, 5 output features
+        self.fc2 = nn.Linear(5, 2)  # 5 input features, 2 output features
 
-def main():
-    dtype = torch.float
-    device = torch.device("cpu")
-    # device = torch.device("cuda:0") # Uncomment this to run on GPU
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
 
-    # Create random input and output data
-    x = torch.linspace(-math.pi, math.pi, 2000, device=device, dtype=dtype)
-    y = torch.sin(x)
+# Create some dummy data
+input_data = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+target_data = torch.tensor([[0.0, 1.0], [1.0, 0.0]])  # Target data for the two samples
 
-    # Randomly initialize weights
-    a = torch.randn((), device=device, dtype=dtype)
-    b = torch.randn((), device=device, dtype=dtype)
-    c = torch.randn((), device=device, dtype=dtype)
-    d = torch.randn((), device=device, dtype=dtype)
+# Initialize the model
+model = SimpleNet()
 
-    learning_rate = 1e-6
-    for t in range(2000):
-        # Forward pass: compute predicted y
-        y_pred = a + b * x + c * x ** 2 + d * x ** 3
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
 
-        # Compute and print loss
-        loss = (y_pred - y).pow(2).sum().item()
-        if t % 100 == 99:
-            print(t, loss)
+# Training loop
+num_epochs = 1000
+for epoch in range(num_epochs):
+    # Zero the gradients
+    optimizer.zero_grad()
 
-        # Backprop to compute gradients of a, b, c, d with respect to loss
-        grad_y_pred = 2.0 * (y_pred - y)
-        grad_a = grad_y_pred.sum()
-        grad_b = (grad_y_pred * x).sum()
-        grad_c = (grad_y_pred * x ** 2).sum()
-        grad_d = (grad_y_pred * x ** 3).sum()
+    # Forward pass
+    output = model(input_data)
 
-        # Update weights using gradient descent
-        a -= learning_rate * grad_a
-        b -= learning_rate * grad_b
-        c -= learning_rate * grad_c
-        d -= learning_rate * grad_d
-        
-    print(f'Result: y = {a.item()} + {b.item()} x + {c.item()} x^2 + {d.item()} x^3')
+    # Compute the loss
+    loss = criterion(output, target_data)
 
+    # Backward pass
+    loss.backward()
 
-if __name__ == '__main__':
-    main()
+    # Update the weights
+    optimizer.step()
+
+    # Print the loss every 100 epochs
+    if (epoch + 1) % 100 == 0:
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+# Test the trained model
+test_data = torch.tensor([[7.0, 8.0, 9.0]])
+model.eval()  # Set the model to evaluation mode
+with torch.no_grad():
+    predicted_output = model(test_data)
+    print("Predicted Output:")
+    print(predicted_output)
